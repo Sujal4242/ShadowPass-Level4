@@ -1204,15 +1204,34 @@ body {
   font-family: var(--font-sans);
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   padding: 0.45rem 0.6rem;
   border-radius: calc(var(--radius-sm) - 2px);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    box-shadow 0.15s var(--ease-out);
+}
+
+.mode-btn:hover:not(.active):not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mode-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.mode-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .mode-btn.active {
-  background: var(--text-primary);
-  color: var(--bg-dark);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 0 14px var(--accent-glow-strong),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 /* ─── Threshold Grid ─── */
