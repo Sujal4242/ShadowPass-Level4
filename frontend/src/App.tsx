@@ -27,15 +27,27 @@ export default function App() {
 
   const isReady = connection.state === 'connected' && deployed !== null && providers !== null;
 
-  const handleVerify = async (appIdHex: string, memberId: string, salt: string) => {
+  const handleVerify = async (
+    mode: 'membership' | 'eligibility',
+    appIdHex: string,
+    memberId: string,
+    salt: string,
+    minAge: number,
+    minTier: number,
+  ) => {
     if (!providers) return;
     reset();
-    await verify(providers, {
-      memberId: hexToBytes(memberId),
-      age: BigInt(25),
-      tier: BigInt(4),
-      salt: hexToBytes(salt),
-    }, appIdHex);
+    await verify(
+      providers,
+      {
+        memberId: hexToBytes(memberId),
+        age: BigInt(25),
+        tier: BigInt(4),
+        salt: hexToBytes(salt),
+      },
+      appIdHex,
+      mode === 'eligibility' ? { minAge, minTier } : {},
+    );
     if (verification.state === 'granted') {
       refreshAccessCount(deployed as NonNullable<typeof deployed>);
     }

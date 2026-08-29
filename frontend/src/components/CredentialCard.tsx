@@ -2,23 +2,37 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DEMO_MEMBER_ID, DEMO_SALT, DEMO_APP_ID } from '../config.ts';
 
+export type VerifyMode = 'membership' | 'eligibility';
+
 interface Props {
   disabled: boolean;
   walletReady: boolean;
-  onVerify: (appId: string, memberId: string, salt: string) => void;
+  onVerify: (
+    mode: VerifyMode,
+    appId: string,
+    memberId: string,
+    salt: string,
+    minAge: number,
+    minTier: number,
+  ) => void;
 }
 
+const hex64valid = (value: string) => /^[0-9a-fA-F]{64}$/.test(value);
+
 export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
+  const [mode, setMode] = useState<VerifyMode>('membership');
   const [appId, setAppId] = useState(DEMO_APP_ID);
   const [memberId, setMemberId] = useState(DEMO_MEMBER_ID);
   const [salt, setSalt] = useState(DEMO_SALT);
+  const [minAge, setMinAge] = useState(18);
+  const [minTier, setMinTier] = useState(3);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const hex64valid = (value: string) => /^[0-9a-fA-F]{64}$/.test(value);
   const appIdValid = hex64valid(appId);
   const memberIdValid = hex64valid(memberId);
   const saltValid = hex64valid(salt);
-  const canVerify = appIdValid && memberIdValid && saltValid && !disabled;
+  const thresholdValid = minAge >= 0 && minTier >= 0 && minTier <= 10;
+  const canVerify = appIdValid && memberIdValid && saltValid && thresholdValid && !disabled;
 
   return (
     <motion.div
@@ -28,14 +42,31 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
       transition={{ duration: 0.35, delay: 0.08 }}
     >
       <div className="card-header">
-        <span className="card-title">Membership Credential</span>
+        <span className="card-title">Credential</span>
         <span className="badge badge-demo">Demo</span>
       </div>
 
+      <div className="mode-toggle">
+        <button
+          className={`mode-btn${mode === 'membership' ? ' active' : ''}`}
+          onClick={() => setMode('membership')}
+          disabled={disabled}
+        >
+          Membership
+        </button>
+        <button
+          className={`mode-btn${mode === 'eligibility' ? ' active' : ''}`}
+          onClick={() => setMode('eligibility')}
+          disabled={disabled}
+        >
+          Eligibility
+        </button>
+      </div>
+
       <p className="card-description">
-        Prove membership while keeping your credential private. The member ID and
-        salt live only in the in-browser witness — never passed to the chain.
-        The application ID is the public per-app replay domain.
+        {mode === 'membership'
+          ? 'Prove you are a member while keeping your identity hidden. Member ID and salt live only in the in-browser witness, never on-chain. The application ID is the public per-app replay domain.'
+          : 'Prove you are a member AND meet minimum age/tier thresholds without revealing your actual age or tier. Thresholds are the public requirement; your real values stay hidden.'}
       </p>
 
       <div className="field">
@@ -89,13 +120,56 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
         />
       </div>
 
+      <AnimatePresence>
+        {mode === 'eligibility' && (
+          <motion.div
+            className="threshold-grid"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="field">
+              <label className="field-label">
+                Min age
+                <span className="field-meta">public</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={130}
+                className="field-input"
+                value={minAge}
+                onChange={(e) => setMinAge(Number(e.target.value))}
+                disabled={disabled}
+              />
+            </div>
+            <div className="field">
+              <label className="field-label">
+                Min tier
+                <span className="field-meta">public · 0–10</span>
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={10}
+                className="field-input"
+                value={minTier}
+                onChange={(e) => setMinTier(Number(e.target.value))}
+                disabled={disabled}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <button
         className="btn btn-primary btn-full btn-lg"
         disabled={!canVerify}
-        onClick={() => onVerify(appId, memberId, salt)}
+        onClick={() => onVerify(mode, appId, memberId, salt, minAge, minTier)}
         style={{ marginTop: '0.35rem' }}
       >
-        Verify Membership
+        {mode === 'membership' ? 'Verify Membership' : 'Prove Eligibility'}
       </button>
 
       {!walletReady && (
@@ -120,9 +194,10 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
-            You can edit the Member ID and Salt fields above to test with
-            different credentials. Invalid credentials are rejected by the
-            contract; replaying the same application ID is rejected as spent.
+            Edit the Member ID and Salt fields to test with different
+            credentials. Invalid or non-member credentials are rejected by the
+            contract; replaying the same application ID is rejected as spent;
+            failing an age/tier threshold reveals nothing about your true values.
           </motion.div>
         )}
       </AnimatePresence>

@@ -19,6 +19,13 @@ export type VerificationState =
   | { state: 'awaiting-wallet' }
   | { state: 'submitting' }
   | { state: 'confirming' }
-  | { state: 'granted'; txId: string; blockHeight: number; accessCount: number }
+  | {
+      state: 'granted';
+      kind: 'membership' | 'eligibility';
+      txId: string;
+      blockHeight: number;
+      accessCount: number;
+      eligibility?: { minAge: number; minTier: number };
+    }
   | { state: 'denied'; message: string }
   | { state: 'error'; message: string };

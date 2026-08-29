@@ -70,10 +70,20 @@ export function VerificationStatus({ state }: Props) {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <div className="status-title">Proof Verified</div>
-          <div className="status-description">
-            Membership confirmed without revealing the underlying credential.
+          <div className="status-title">
+            {state.kind === 'eligibility' ? 'Eligibility Proved' : 'Membership Verified'}
           </div>
+          <div className="status-description">
+            {state.kind === 'eligibility'
+              ? `Credential satisfies min age ${state.eligibility?.minAge} / min tier ${state.eligibility?.minTier} without revealing the true values below those bounds.`
+              : 'Membership confirmed without revealing the underlying credential.'}
+          </div>
+
+          {state.kind === 'eligibility' && (
+            <div className="status-description" style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+              Thresholds are lower bounds — your exact age and tier stay hidden on-chain.
+            </div>
+          )}
 
           <div className="tx-grid">
             <div className="tx-item full-width">
@@ -118,7 +128,7 @@ export function VerificationStatus({ state }: Props) {
           <div className="status-title">Access Denied</div>
           <div className="status-description">{state.message}</div>
           <div className="status-description" style={{ marginTop: '0.5rem', color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-            Credential not found in on-chain allowlist. ZK proof generation failed.
+            Rejected by the contract circuit — non-member, revoked, spent, or threshold not met.
           </div>
         </>
       )}
