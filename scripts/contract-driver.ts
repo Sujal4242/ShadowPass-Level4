@@ -18,6 +18,7 @@ import * as zkirV2 from '@midnight-ntwrk/zkir-v2';
 import * as ledgerModule from '@midnight-ntwrk/ledger-v8';
 import { makeContractExecutableRuntime } from '@midnight-ntwrk/midnight-js-types';
 import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
+import { Cause } from 'effect';
 
 import * as ShadowPass4 from '../contracts/managed/shadowpass4/contract/index.js';
 import type * as ShadowPass4Types from '../contracts/managed/shadowpass4/contract/index.js';
@@ -49,6 +50,40 @@ export const CIRCUIT_IDS = {
 } as const;
 
 export type CircuitName = keyof typeof CIRCUIT_IDS;
+
+const FIBER_FAILURE_CAUSE = Symbol.for('effect/Runtime/FiberFailure/Cause');
+
+/**
+ * Circuit assertions surface as CompactError deep inside the effect/Fiber
+ * failure machinery. Walk the cause chain to the innermost message (e.g.
+ * "failed assert: Not an authorized member") so callers and users see the
+ * actual reason a transition was rejected.
+ */
+export function unwrapCircuitError(error: unknown): Error {
+  const fiber = error as { [FIBER_FAILURE_CAUSE]?: Cause.Cause<unknown> };
+  if (fiber && fiber[FIBER_FAILURE_CAUSE]) {
+    for (const failure of Cause.failures(fiber[FIBER_FAILURE_CAUSE])) {
+      let current: unknown = failure;
+      let message = '';
+      while (current && typeof current === 'object') {
+        const own = current as { message?: unknown; cause?: unknown };
+        if (typeof own.message === 'string' && own.message) {
+          message = own.message;
+        }
+        current = own.cause;
+      }
+      if (message) {
+        const unwrapped = new Error(message);
+        unwrapped.cause = error;
+        return unwrapped;
+      }
+    }
+  }
+  if (error instanceof Error) {
+    return error;
+  }
+  return new Error(String(error));
+}
 
 export interface DriverOptions {
   assetsDir: string;
@@ -125,18 +160,22 @@ export class Level4Driver {
     zswapLocalState: any,
     ...args: unknown[]
   ) {
-    return this.runtime.runPromise(
-      this.executable.circuit(
-        CIRCUIT_IDS[circuitName],
-        {
-          address: ContractAddress.ContractAddress('00'.repeat(32)),
-          contractState: state,
-          privateState,
-          zswapLocalState,
-        },
-        ...(args as any[]),
-      ),
-    );
+    try {
+      return await this.runtime.runPromise(
+        this.executable.circuit(
+          CIRCUIT_IDS[circuitName],
+          {
+            address: ContractAddress.ContractAddress('00'.repeat(32)),
+            contractState: state,
+            privateState,
+            zswapLocalState,
+          },
+          ...(args as any[]),
+        ),
+      );
+    } catch (error) {
+      throw unwrapCircuitError(error);
+    }
   }
 
   /**
@@ -151,29 +190,33 @@ export class Level4Driver {
     privateState: unknown,
     args: Array<Uint8Array | bigint>,
   ) {
-const contract = new ShadowPass4.Contract(this.witnesses);
-    const context = ocrt.createCircuitContext(
-      ocrt.dummyContractAddress(),
-      { bytes: encodedCoinPublicKeyBytes() },
-      contextState,
-      privateState as any,
-    );
-    const circuit = (contract.circuits as unknown as Record<
-      string,
-      (ctx: unknown, ...a: any[]) => any
-    >)[circuitName];
-    const { proofData } = circuit(context, ...args);
-    const keyLocation = `shadowpass4/${circuitName}`;
-    const preimage = ocrt.proofDataIntoSerializedPreimage(
-      proofData.input,
-      proofData.output,
-      proofData.publicTranscript,
-      proofData.privateTranscriptOutputs,
-      keyLocation,
-    );
-    const proof = await zkirV2.prove(preimage, this.keyMaterialProvider);
-    const bindingInputs = await zkirV2.check(preimage, this.keyMaterialProvider);
-    return { preimage, proof, bindingInputs };
+    try {
+      const contract = new ShadowPass4.Contract(this.witnesses);
+      const context = ocrt.createCircuitContext(
+        ocrt.dummyContractAddress(),
+        { bytes: encodedCoinPublicKeyBytes() },
+        contextState,
+        privateState as any,
+      );
+      const circuit = (contract.circuits as unknown as Record<
+        string,
+        (ctx: unknown, ...a: any[]) => any
+      >)[circuitName];
+      const { proofData } = circuit(context, ...args);
+      const keyLocation = `shadowpass4/${circuitName}`;
+      const preimage = ocrt.proofDataIntoSerializedPreimage(
+        proofData.input,
+        proofData.output,
+        proofData.publicTranscript,
+        proofData.privateTranscriptOutputs,
+        keyLocation,
+      );
+      const proof = await zkirV2.prove(preimage, this.keyMaterialProvider);
+      const bindingInputs = await zkirV2.check(preimage, this.keyMaterialProvider);
+      return { preimage, proof, bindingInputs };
+    } catch (error) {
+      throw unwrapCircuitError(error);
+    }
   }
 
   async dispose() {
