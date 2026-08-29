@@ -17,6 +17,7 @@
     "build:frontend": "npm --prefix frontend run build",
     "build:deploy": "tsc --project tsconfig.deploy.json --noEmit",
     "deploy:v2": "tsx scripts/deploy-v2.ts",
+    "deploy:v4": "tsx scripts/deploy-v4.ts",
     "issuer:gen-issuer": "tsx scripts/issuer-cli.ts gen-issuer",
     "issuer:seed": "tsx scripts/issuer-cli.ts seed",
     "issuer:credentials": "tsx scripts/issuer-cli.ts credentials",
