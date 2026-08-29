@@ -1,430 +1,238 @@
-# ShadowPass
+# ShadowPass Level 4
 
-**Private Allowlist Access on Midnight — prove membership without revealing identity.**
+**Verifiable Access Credentials on Midnight — reusable, selectively-disclosable, serverless.**
 
-[![CI](https://github.com/Sujal4242/ShadowPass/actions/workflows/ci.yml/badge.svg)](https://github.com/Sujal4242/ShadowPass/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+ShadowPass is a Midnight dApp for **privacy-preserving access control**. Where level 3 proved membership against a fixed 8-slot allowlist, Level 4 introduces *verifiable credentials*: encoded on-chain as Merkle-tree commitments, reusable across applications, protected against replay by per-application nullifiers, revocable by the issuer, and **selectively disclosable** — a member can prove attributes like `age >= 18` without revealing age, identitity, or even *which* credential.
 
-ShadowPass is a complete Midnight dApp that solves the **Private Allowlist Access** problem. Users prove they are members of an authorized allowlist using a zero-knowledge proof — without revealing their identity, membership credential, or salt. The Groth16 ZK proof is generated entirely in the browser and verified on-chain by a Compact smart contract deployed to Midnight Preprod.
+Everything runs without a backend: a **Compact smart contract** on **Midnight Preprod**, a browser frontend that generates the Groth16 proof locally via the Midnight wallet, a public indexer, static hosting, GitHub Actions, and an **offline issuer CLI** for credential lifecycle management.
 
 ## Live Demo
 
-**[Launch ShadowPass →](https://shadowpass.netlify.app/)**
-
-ShadowPass is deployed on Midnight Preprod and can be tested directly in the browser.
+**[Launch ShadowPass →](https://shadowpass.netlify.app/)** (Level 4 build)
 
 ## Demo Video
 
-**[Watch the ShadowPass Demo →](https://youtu.be/awoQSnAiCgo)**
+**[Watch the Level 4 demo →](...)** (link in final release milestone)
 
-The video demonstrates:
-- Connecting the Midnight wallet
-- Entering the membership credential
-- Generating a zero-knowledge proof in the browser
-- Wallet approval
-- On-chain verification
-- Successful Groth16 proof verification
-- Privacy-preserving verification without revealing the underlying credential
+## Follow ShadowPass
 
-> The demo video is unlisted on YouTube.
+**[@shadowpass on X →](https://x.com/shadowpass)** — product updates, security notes, and release announcements. (Profile finalized in the release milestone.)
 
 ---
 
 ## Overview
 
-Access control systems routinely require users to prove authorization — but traditional approaches reveal *who* is requesting access, creating surveillance risk. ShadowPass solves this by decoupling identity from authorization.
+Access control leaks identity. Every badge scan, every login, every credential check creates a trail of *who accessed what, when*. ShadowPass breaks the trail: the blockchain learns only that *a* valid credential was presented — never who owns it, never which one.
 
-A user proves membership in an authorized allowlist using a zero-knowledge proof:
+Level 4 adds the primitives that make this a real credential system:
 
-- The user possesses a private credential: `(memberId, salt)`.
-- A Compact smart contract stores 8 Pedersen commitments on-chain, one per allowlist slot.
-- The ZK circuit computes `persistentCommit(memberId, salt)` and asserts it matches one of the 8 on-chain commitments.
-- The Groth16 proof is generated in-browser and verified on-chain.
-- The raw credential never leaves the user's browser.
-
-The result: the blockchain verifies "this user is authorized" without learning *which* member they are.
-
----
-
-## Why ShadowPass?
-
-Most access control systems leak identity. Every login, every badge scan, every credential check creates a trail. ShadowPass breaks that trail by proving authorization without disclosure.
-
-- **No identity leak** — the blockchain never learns which member requested access
-- **No credential exposure** — the raw membership data never leaves the browser
-- **No linkability** — multiple verifications by the same member cannot be connected on-chain
-- **Full on-chain verification** — the proof is verified by the smart contract, not a trusted server
+| Capability | Level 3 | Level 4 |
+|---|---|---|
+| Membership storage | 8 fixed slots | **Merkle tree allowlist (1024 capacity)** |
+| Enrollment | Deploy-time only | **Post-deploy, issuer-authorized (no server)** |
+| Reusability | One fixed flow | **One credential, per-application nullifiers** |
+| Replay protection | None | **Deterministic per-app single-use nullifiers** |
+| Selective disclosure | None | **Prove `age >= t` / `tier >= t` without revealing them** |
+| Revocation | None | **Issuer revoke/unrevoke of app-nullifiers** |
+| Proof format | Groth16 | Groth16 (browser-generated) |
 
 ---
 
-## Features
+## What the demo shows
 
-- **Private membership verification** — prove you're on the allowlist without revealing which entry you hold
-- **Zero-knowledge proof flow** — Groth16 proof generated entirely in the browser
-- **Midnight wallet connection** — DApp Connector API with 1AM and Lace wallets
-- **Preprod network integration** — deployed and verified on Midnight Preprod
-- **Access verification result** — real-time proof status with granted/denied feedback
-- **Privacy explanation** — in-app section explaining what is and isn't revealed
-- **On-chain access count** — public ledger of successful verifications (count only)
-- **Responsive UI** — polished interface with animated design system
-- **Automated tests** — 28 tests covering contract logic, ZK proofs, and wallet state
-- **GitHub Actions CI** — compile, typecheck, build, and test on every push
+1. Import a credential issued by the issuer CLI (demo credential is public and documented).
+2. Connect the Midnight wallet.
+3. Pick an application context (`appId`) and either:
+   - **Verify membership** — prove membership without revealing memberId, salt, or tree position, or
+   - **Prove eligibility** — e.g. `age >= 21` and `tier >= 3`, without revealing age, tier, or identity.
+4. The wallet generates the Groth16 proof locally and submits it.
+5. The contract verifies the proof, blocks replays via the per-app nullifier, checks revocation status, and records the access.
+6. **Denied** states (non-member, replayed credential, revoked credential, below threshold) are rejected with distinct reasons.
 
 ---
 
-## How It Works
+## How it works
 
 ```
-User
-  │
-  ▼
-Connect Midnight Wallet (DApp Connector)
-  │
-  ▼
-Enter membership credential (memberId + salt)
-  │
-  ▼
-Browser computes persistentCommit(memberId, salt)
-  │
-  ▼
-Groth16 ZK proof generated in browser (via wallet WASM prover)
-  │
-  ▼
-Proof submitted to Midnight Preprod
-  │
-  ▼
-Smart contract verifies proof against 8 on-chain commitments
-  │
-  ▼
-Access Granted / Denied
+Issuer CLI (offline)                     Browser (member)                 On-chain (Preprod)
+┌──────────────────────┐          ┌────────────────────────┐          ┌──────────────────────┐
+│ generate credential   │          │ import credential      │          │ MerkleTree<1024>     │
+│ (memberId, age, tier, │          │ (memberId, age, tier,  │          │ usedNullifiers map   │
+│  salt)                │          │  salt)                 │          │ revoked map          │
+│ enroll() → commitment ───────►   │ proveEligibility(      │          │ accessCount          │
+│ revoke(appId)         │          │   appId, minAge,       │          │ issuerCommitment     │
+│ unrevoke(appId)       │          │   minTier)              │          │ ┌────────────────┐  │
+└──────────────────────┘          │ Groth16 proof in-       │          │ │ proveEligibility│ │
+                                  │  browser → wallet signs │          │ │ verifyMembership│ │
+                                  │  → submits tx           ──────────► │ │ enroll/revoke   │ │
+                                  └────────────────────────┘          │ └────────────────┘  │
+                                                                      └──────────────────────┘
 ```
 
-**What becomes public:** The ZK proof itself, the access count increment, and the contract address.
+- The credential `(memberId, age, tier, salt)` never leaves the device. Only its *commitment* is stored on-chain.
+- The Merkle proof path (and therefore the exact tree position) stays **private** inside the ZK circuit — the contract only sees a recomputed root.
+- `verifyMembership` proves commitment preimage knowledge **and** tree membership in one proof.
+- `proveEligibility` adds in-circuit predicates over hidden `Uint<8>` attributes.
+- A per-app nullifier `persistentHash(use | appId | memberId | salt)` makes each credential single-use *per application*, so one credential works across many apps without cross-app linkability.
 
-**What stays private:** The raw `memberId`, the `salt`, and which specific allowlist entry matched.
+### What becomes public
+The Groth16 proof, the recomputed Merkle root (already public in the ledger), the nullifier, the threshold values requested, and the access-count increment.
 
----
-
-## Privacy Model
-
-### What an observer can learn
-
-- A proof of membership was submitted to the contract
-- The `accessCount` incremented (total number of successful verifications)
-- The contract address and allowlist commitments (8 Pedersen hashes)
-- The ZK proof data (Groth16 proof bytes)
-
-### What remains private
-
-- The raw `memberId` or `salt` used to generate the proof
-- Which of the 8 allowlist slots matched the credential
-- The identity or wallet address of the prover (membership is verified via commitment, not wallet address)
-- Any linking between multiple proofs from the same member
-
----
-
-## Architecture
-
-```mermaid
-graph TD
-    A[React 19 + Vite 6 UI] --> B[Midnight Wallet<br/>DApp Connector]
-    B --> C[ShadowPass<br/>Verification Flow]
-    C --> D[ShadowPass Contract<br/>Compact — On-Chain Verification]
-    D --> E[Midnight Preprod<br/>Blockchain]
-
-    A --> F[7 Midnight.js Providers]
-    F --> G[FetchZkConfigProvider<br/>Static ZK Assets]
-    F --> H[Browser WASM Prover<br/>Groth16 Proof Generation]
-    F --> I[InMemoryPrivateStateProvider<br/>Browser Memory]
-    F --> J[Indexer Public Data Provider<br/>Preprod Indexer API]
-```
-
-The app uses 7 midnight-js providers assembled in `frontend/src/midnight/providers.ts`:
-
-| Provider | Source |
-|----------|--------|
-| ZK Config | `FetchZkConfigProvider` — reads ZKIR/keys from static assets |
-| Proof | `connectedAPI.getProvingProvider()` — browser WASM prover |
-| Private State | `InMemoryPrivateStateProvider` — empty (no witnesses) |
-| Public Data | `indexerPublicDataProvider()` — Midnight Preprod indexer |
-| Wallet | `connectedAPI` — DApp Connector |
-| Midnight | `connectedAPI` — DApp Connector |
+### What always stays private
+`memberId`, `salt`, `age`, `tier`, and **which Merkle leaf** (tree position) the credential lives at.
 
 ---
 
 ## Smart Contract
 
-The ShadowPass contract is written in Compact and lives at `contracts/shadowpass.compact`:
+New contract at [`contracts/shadowpass4.compact`](contracts/shadowpass4.compact). The Level 3 `contracts/shadowpass.compact` is retained unchanged for history and is **not** used by the Level 4 app.
 
 ```compact
-pragma language_version >= 0.23;
-
-import CompactStandardLibrary;
-
-export ledger allowlist: Vector<8, Bytes<32>>;
-export ledger accessCount: Field;
-
-constructor(members: Vector<8, Bytes<32>>) {
-  allowlist = disclose(members);
+export struct MemberRecord {
+  memberId: Bytes<32>;
+  age: Uint<8>;
+  tier: Uint<8>;
 }
 
-export circuit proveMembership(memberId: Bytes<32>, salt: Bytes<32>): [] {
-  const claim = persistentCommit<Bytes<32>>(memberId, salt);
-  assert(
-    (claim == allowlist[0]) || (claim == allowlist[1]) ||
-    (claim == allowlist[2]) || (claim == allowlist[3]) ||
-    (claim == allowlist[4]) || (claim == allowlist[5]) ||
-    (claim == allowlist[6]) || (claim == allowlist[7]),
-    "Not an authorized member"
-  );
-  accessCount = accessCount + 1;
-}
+export ledger memberships:      MerkleTree<10, Bytes<32>>;
+export ledger usedNullifiers:   Map<Bytes<32>, Bytes<32>>;
+export ledger revokedNullifiers: Map<Bytes<32>, Boolean>;
+export ledger accessCount:      Field;
+export ledger issuerCommitment: Bytes<32>;
 ```
 
-- **`constructor`** — initializes 8 Pedersen commitments from the allowlist vector
-- **`proveMembership`** — computes `persistentCommit(memberId, salt)` and asserts it matches one of the 8 slots
-- **No witnesses** — the circuit takes explicit `Bytes<32>` arguments, no private state
-- **`accessCount`** — incremented on each successful verification
+| Circuit | Authorized by | Effect |
+|---|---|---|
+| `enroll()` | Issuer (commitment preimage) | Inserts a credential commitment into the tree |
+| `revoke(appId)` / `unrevoke(appId)` | Issuer | Revokes/un-revokes the app-nullifier of a known credential |
+| `verifyMembership(appId)` | Holder (commitment preimage + tree membership) | Proof, nullifier recorded, access count |
+| `proveEligibility(appId, minAge, minTier)` | Holder | Membership + attribute predicates, nullifier recorded |
+
+Two security-critical details encoded in the circuits (`docs/security-model.md` for the full write-up):
+
+1. **Commitment-bound membership** — `assert(path.leaf == memberCommitment)` ties the Merkle path to the credential's commitment. Without it, a prover could present *any* real tree path, breaking membership binding.
+2. **No `ownPublicKey` in the nullifier** — `ownPublicKey()` is a *witness function*, not authentication; adding it to a nullifier would let a prover dodge replay protection by rotating keys. Authorization is the credential-knowledge proof only.
 
 ---
 
-## Wallet & Midnight Integration
+## Architecture
 
-ShadowPass connects to the user's Midnight-compatible wallet via the **DApp Connector API** (`window.midnight`):
+Same serverless backbone as Level 3, upgraded with real witnesses:
 
-1. **Discovery** — the app enumerates installed Midnight wallets (1AM, Lace)
-2. **Connection** — `wallet.connect(networkId)` returns a `ConnectedAPI` instance
-3. **Provider assembly** — 7 providers are assembled from the connected wallet
-4. **Contract interaction** — `findDeployedContract()` loads the deployed contract at `4cae45d1...`
-5. **Proof generation** — `connectedAPI.getProvingProvider()` delegates Groth16 proving to the wallet's WASM prover
-6. **Transaction submission** — the wallet balances and submits the transaction to Midnight Preprod
-
-**Network:** Midnight Preprod (testnet — no real value at stake)
+- **7 midnight-js providers** assembled in `frontend/src/midnight/providers.ts` (FetchQzk config, wallet-delegated Groth16 prover with HTTP fallback, in-memory private state, public indexer, wallet, midnight).
+- **Witness implementations** in `frontend/src/midnight/witnesses.ts` — `record`, `recordSalt`, `membershipPath` (via `ledger.memberships.findPathForLeaf`), `issuerKey`.
+- **Static ZK assets** (`zkir`, `keys`) copied to `frontend/public/midnight/shadowpass4` and fetched at runtime.
+- **Netlify** static hosting with a reproducible build script; **GitHub Actions** CI/CD.
+- **Offline issuer CLI** (`scripts/issuer-cli.ts`) for credential generation, issuance/enrollment, and revocation — no hosted backend anywhere.
 
 ---
 
-## Running Locally
+## Security model & privacy
 
-**Requirements:** Node.js >= 22.0.0, Midnight wallet extension (1AM or Lace)
+Full write-up: [`docs/security-model.md`](docs/security-model.md) (presented with the Level 4 privacy milestone).
 
-### Installation
+Highlights:
+- Authorization = knowledge of a credential whose commitment is an on-chain Merkle leaf (plus, for eligibility, attribute predicates verified in-circuit).
+- `ownPublicKey()` is **never** used for authorization; it does not authenticate the transaction signer in Midnight, and signature-verification circuits (`jubjubSchnorrVerify`, `secp256k1EcdsaVerify`) are unavailable in Compact 0.31.1. This is a documented trade-off, not a workaround.
+- Nullifiers are wallet-independent and per-application, giving strong replay prevention and cross-app unlinkability.
+- Revocation requires the issuer to know the credential (they issued it in the demo flow); revocation never reveals the credential to third parties — only its app-nullifier is published.
+- Tree leaves are Pedersen commitments (`persistentCommit`) — even dictionary attacks are impractical (256-bit `memberId`).
+
+---
+
+## Running locally
+
+**Requirements:** Node.js >= 22, Midnight wallet extension (1AM or Lace), Compact CLI 0.31.1.
 
 ```bash
+# Install
 npm install
 npm --prefix frontend install
-```
 
-### Compilation
-
-```bash
+# Compile contract (generates Groth16 keys — 5 circuits) + copy ZK assets
 npm run compile
-```
+npm run copy-zk-assets
 
-### Tests
-
-```bash
+# Tests (contract logic, Groth16 proofs, issuer CLI, privacy)
 npm test
-```
 
-### TypeScript Check
-
-```bash
+# TypeScript checks
 npm run build
-cd frontend && npx tsc -b --noEmit
-```
+npm run build:deploy
 
-### Frontend Development
-
-```bash
+# Dev server → http://localhost:5173
 npm run dev:frontend
-# → http://localhost:5173
-```
 
-### Production Build
-
-```bash
+# Production build
 npm run build:frontend
 ```
+
+### Issuer CLI (demonstrates the serverless issuance model)
+
+```bash
+# Generate an issuer key + a set of demo credentials, enroll them on-chain
+SHADOWPASS4_ISSUER_KEY=<hex> npm run issuer:seed
+cat .shadowpass-issuer/credentials.json   # share one credential with a test user
+
+# Revoke / un-revoke a credential for a given application
+npm run issuer:revoke -- --appId <hex> --memberId <hex> --salt <hex>
+npm run issuer:unrevoke -- --appId <hex> --memberId <hex> --salt <hex>
+```
+
+Commands are idempotent and read/write a local keystore under `.shadowpass-issuer/` (gitignored).
 
 ---
 
 ## Testing
 
-The project includes **28 automated tests** across two test suites:
+| Suite | File | Covers |
+|---|---|---|
+| Contract membership | `tests/contract-membership.test.ts` | enroll, authorized/stranger/path-binding, root checks |
+| Eligibility | `tests/contract-eligibility.test.ts` | threshold pass/fail boundaries, hidden attributes |
+| Nullifier & revocation | `tests/contract-nullifier-revocation.test.ts` | replay rejection, revoke/unrevoke, revoked-use denial |
+| Privacy | `tests/contract-privacy.test.ts` | no `memberId`/`salt`/`age`/`tier`/commitment/position in transcript |
+| Groth16 | `tests/groth16-proof.test.ts` | real prove + verify against a deployed-state binding |
+| Issuer CLI | `tests/issuer-cli.test.ts` | credential determinism, keystore, unauthorized rejection |
+| Wallet state | `tests/wallet-state.test.ts` | persisted deploy-wallet state round-trips |
 
-| Suite | Tests | Description |
-|-------|-------|-------------|
-| `shadowpass.test.ts` | 13 | Contract creation, Groth16 proof generation, ZK circuit verification, invalid credential rejection, no data exposure, commitment determinism |
-| `wallet-state.test.ts` | 15 | Wallet state serialization, version handling, atomic writes, corruption recovery, network isolation |
-
-### What the tests validate
-
-- CompactContract creation and witness generation
-- Groth16 proof generation and on-chain verification
-- ZK circuit constraint satisfaction
-- Invalid credential rejection (unauthorized member)
-- No raw `memberId` or `salt` exposed in on-chain transcript
-- Commitment determinism (`persistentCommit` is deterministic)
-- Wallet state persistence round-trips and error handling
-
-### Latest validation
-
-```
-Compact compile     ✅ Clean
-TypeScript          ✅ Clean
-Frontend build      ✅ Clean (Vite production build)
-Tests               ✅ 28/28 passing
-```
+All suites run headless (no chain, no browser): Groth16 proof generation and on-chain-verifier binding checks run against the compiled contract locally.
 
 ---
 
 ## CI/CD
 
-The project uses **GitHub Actions** for continuous integration:
+`.github/workflows/ci.yml` — on push/PR to `main`: install Compact 0.31.1, `npm ci` (root + frontend), compile the contract, typecheck, build the frontend, run all unit tests.
 
-**Workflow:** `.github/workflows/ci.yml`
-
-| Stage | Command |
-|-------|---------|
-| Checkout | `actions/checkout@v4` |
-| Node.js 22 | `actions/setup-node@v4` |
-| Compact CLI | Install from Midnight releases |
-| Compiler 0.31.1 | `compact update 0.31.1` |
-| Root deps | `npm ci` |
-| Frontend deps | `npm ci` (in `frontend/`) |
-| Contract compile | `npm run compile` |
-| TypeScript check | `npm run build` |
-| Frontend build | `npm run build:frontend` |
-| Unit tests | `npm test` (15 min timeout) |
-
-Triggered on push to `main` and pull requests to `main`.
+Netlify builds reproducibly via `scripts/netlify-build.sh` (same steps as CI) and publishes `frontend/dist`.
 
 ---
 
-## Preprod Deployment
+## Preprod deployment
 
 | Field | Value |
-|-------|-------|
+|---|---|
 | **Network** | Midnight Preprod |
-| **Contract address** | `4cae45d1c4e6d2acc4e607f60cd61c19b77c31c84af0cc72c827889271041f44` |
-| **Explorer** | [View on Explorer](https://explorer.preprod.midnight.network/contract/4cae45d1c4e6d2acc4e607f60cd61c19b77c31c84af0cc72c827889271041f44) |
-| **Allowlist size** | 8 slots (`Vector<8, Bytes<32>>`) |
+| **Contract** | `shadowpass4` at `contracts/shadowpass4.compact` |
+| **Address** | set in the deployment milestone — see `docs/evidence/DOCUMENT.md` |
 | **Compiler** | Compact 0.31.1 |
 | **Runtime** | compact-runtime 0.16.0 |
 
-> Midnight Preprod is a test network. Test tokens are obtained from the network faucet. No real value is at stake.
-
-Full deployment evidence: [`docs/evidence/DOCUMENT.md`](docs/evidence/DOCUMENT.md)
+Deployment is a one-time scripted operation (`scripts/deploy-v4.ts`) using the same persisted-wallet pattern proven in Level 3. No deployment secrets are ever committed.
 
 ---
 
-## Demo
+## Repository layout
 
-### Demo Flow
-
-1. Open the ShadowPass dApp in a browser with a Midnight wallet extension
-2. Click **Connect Wallet** and approve the DApp Connector prompt
-3. Enter the demo membership credential (see below)
-4. Click **Verify Membership** to generate a ZK proof
-5. Approve the wallet transaction if prompted
-6. View the verification result: **Access Granted**
-7. The on-chain `accessCount` increments
-
-### Demo Credentials
-
-| Field | Value |
-|-------|-------|
-| **Member ID** | `deadbeef000000000000000000000000000000000000000000000000deadbeef` |
-| **Salt** | `cafebabe000000000000000000000000000000000000000000000000cafebabe` |
-
-These credentials are **public by design** for demonstration purposes. See [`docs/evidence/DEMO-CREDENTIALS.md`](docs/evidence/DEMO-CREDENTIALS.md) for details.
-
-> **Production credential model:** In a production system, credentials are generated and distributed privately by an authorized issuer. The demonstration uses public credentials to show the ZK proof flow without requiring a backend enrollment system.
-
----
-
-## Screenshots
-
-### Live Deployment
-
-The ShadowPass landing page deployed on Midnight Preprod.
-
-![ShadowPass live deployment](docs/evidence/screenshots/shadowpass-live.jpeg)
-
-### Wallet Connected
-
-The Midnight wallet connected via DApp Connector, showing the verification interface ready for credential input.
-
-![Midnight wallet connected](docs/evidence/screenshots/wallet-connected.jpeg)
-
-### Successful Proof Verification
-
-A Groth16 zero-knowledge proof verified on-chain. The transaction hash, block number, and incremented access count confirm successful membership verification.
-
-![ShadowPass proof verified on-chain](docs/evidence/screenshots/proof-verified.jpeg)
-
-### Test Suite
-
-All 28 automated tests passing — covering Compact contract logic, Groth16 proof generation, ZK circuit verification, and wallet state persistence.
-
-![ShadowPass test suite with 28 passing tests](docs/evidence/screenshots/tests-28-of-28.jpeg)
-
-### Continuous Integration
-
-GitHub Actions CI workflow passing on every push to `main`.
-
-![ShadowPass GitHub Actions CI passing](docs/evidence/screenshots/ci-passing.jpeg)
-
----
-
-## Security
-
-The repository is configured to **never commit** sensitive material:
-
-- `.env` files are gitignored (only `.env.example` is tracked)
-- Wallet seed phrases and private keys are never stored in the repository
-- Generated artifacts (`contracts/managed/`, `frontend/dist/`, `*.tsbuildinfo`) are gitignored
-- Wallet state directories (`.midnight-wallet-state/`, `midnight-level-db/`) are gitignored
-- Demo credentials documented in this README and `docs/evidence/` are public by design
-
-The deployment script (`scripts/deploy-v2.ts`) requires `SHADOWPASS_DEPLOYER_SEED` as an environment variable — this is never stored in the repository.
-
----
-
-## Project Status
-
-| Component | Status |
-|---|---|
-| Compact contract | Deployed on Preprod |
-| Privacy circuit | Groth16 proof — verified end-to-end |
-| Wallet integration | DApp Connector (1AM, Lace) |
-| Frontend | React 19 + Vite 6 — production build clean |
-| Tests | 28/28 passing |
-| TypeScript | Clean |
-| CI/CD | GitHub Actions — compile, typecheck, build, test |
-| Preprod deployment | Live at `4cae45d1...` |
-| Documentation | Complete (evidence, architecture, history) |
-
----
-
-## Level 3 Submission
-
-| Requirement | Status |
-|---|---|
-| Private Allowlist Access selected | Done |
-| Functional Midnight privacy functionality | Done |
-| Smart contract on Midnight | Done |
-| Zero-knowledge proof | Done |
-| Wallet integration | Done |
-| Minimum 3 tests passing | Done (28/28) |
-| CI/CD workflow | Done |
-| Public GitHub repository | Done |
-| README privacy model | Done |
-| Minimum 10 meaningful commits | Done (11) |
-| Live demo link | Done |
-| Test-output screenshot | Done |
-| 1-minute demo video | Done |
-| Product proposal approval | Pending |
+```
+contracts/shadowpass4.compact   Level 4 Compact contract
+scripts/issuer-cli.ts           Offline issuer CLI (credentials, enroll, revoke)
+scripts/deploy-v4.ts            One-time deployment to Preprod
+scripts/wallet-state.ts         Deploy-wallet sync persistence
+frontend/                       React 19 + Vite 6 browser dApp
+tests/                          Contract, ZK, privacy, CLI, wallet-state tests
+docs/security-model.md          Level 4 privacy + wallet-binding write-up
+docs/evidence/                  Deployment evidence, Phase-0 feasibility
+```
 
 ---
 

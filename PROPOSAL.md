@@ -1,115 +1,75 @@
-# PROPOSAL.md — ShadowPass
+# PROPOSAL.md — ShadowPass Level 4
 
 ## Project Title
 
-**ShadowPass: Private Allowlist Access on Midnight**
+**ShadowPass: Verifiable Access Credentials on Midnight**
 
 ## Summary
 
-ShadowPass is a zero-knowledge proof dApp that proves allowlist membership without revealing user identity. Built as a complete Midnight dApp, it generates Groth16 proofs entirely in the browser and verifies them on-chain.
+ShadowPass is a zero-knowledge dApp for privacy-preserving access control. Level 4 evolves the Level 3 "private allowlist" into a full **verifiable credential system**: reusable credentials, dynamic issuer-authorized enrollment, per-application replay protection, issuer-side revocation, and **selective disclosure** (proving predicates over hidden attributes). Groth16 proofs are generated entirely in the browser and verified on-chain by a Compact smart contract on Midnight Preprod — with **no backend anywhere**.
 
 ## Problem Statement
 
-Traditional membership verification systems reveal user identity to the verifier. This creates privacy concerns:
+Traditional access control leaks identity and usage:
 
-- The on-chain transaction history reveals which addresses are members
-- Multiple verifications can be linked to track user behavior
-- Membership lists can be harvested from public blockchain data
+- Verifiers learn *who* is requesting access, creating surveillance risk.
+- Fixed membership lists are static: adding/removing members requires re-deployment.
+- A credential checked at multiple applications can be **replayed** and **linked** across services.
+- Users must disclose *everything* to prove eligibility (e.g. "I am over 21"), even when only the predicate matters.
 
 ## Solution
 
-ShadowPass uses zero-knowledge proofs to decouple identity from membership verification:
+Level 4 separates identity from authorization using a compact set of cryptographic primitives (all verified working under Compact 0.31.1):
 
-1. **Commitment-based allowlist:** Members are registered as `persistentCommit(memberId, salt)` commitments on-chain
-2. **ZK proof generation:** The browser generates a Groth16 proof that proves knowledge of a valid `(memberId, salt)` pair matching one of the on-chain commitments
-3. **Privacy preservation:** The proof reveals nothing about which commitment matched, preventing tracking
+1. **Merkle-tree allowlist.** Members are encoded as on-chain commitments in a `MerkleTree<10, Bytes<32>>` (1024 capacity). Enrollment happens **post-deployment** via an issuer-authorized circuit — no redeploy, no server.
+2. **Credential-knowledge proofs.** A holder proves, in one Groth16 proof, knowledge of the preimage commitment *and* that the commitment is a tree leaf (the Merkle path stays private — the contract only sees a recomputed root).
+3. **Replay protection without linkability.** Each credential derives a deterministic, wallet-independent **per-application nullifier**; a credential is single-use per app and leaves no cross-app trace.
+4. **Selective disclosure.** `proveEligibility` proves predicates over hidden `Uint<8>` attributes (`age`, `tier`) — the app learns "eligible", not the values.
+5. **Revocation.** The issuer can revoke/un-revoke a credential's app-nullifier; third parties never see the underlying credential.
+
+## Why this matters
+
+- **Reusable credentials** — one credential, many applications, one use per app.
+- **Stronger verification flows** — an application verifies exactly the property it needs, and nothing more.
+- **Serverless issuance** — an offline issuer CLI handles credential lifecycle; no hosted backend, no API keys.
+- **Documented trade-offs** — `ownPublicKey()` is a witness function, not an authenticator; signature circuits are unavailable in 0.31.1; authorization is therefore credential-knowledge based (see `docs/security-model.md`).
 
 ## Technical Approach
 
-### Smart Contract (Compact)
+### Smart Contract (`contracts/shadowpass4.compact`)
 
-```compact
-contract ShadowPass {
-  allowlist: Persistent<Bytes<32>, 8>;
-  accessCount: Persistent<Uint<64>>;
+```
+struct MemberRecord { memberId: Bytes<32>; age: Uint<8>; tier: Uint<8> }
 
-  constructor(members: Vector<8, Bytes<32>>) {
-    this.allowlist.setAll(members);
-    this.accessCount.set(0n);
-  }
+ledger memberships       : MerkleTree<10, Bytes<32>>
+ledger usedNullifiers    : Map<Bytes<32>, Bytes<32>>
+ledger revokedNullifiers : Map<Bytes<32>, Boolean>
+ledger accessCount       : Field
+ledger issuerCommitment  : Bytes<32>
 
-  proveMembership(memberId: Bytes<32>, salt: Bytes<32>) {
-    require(this.allowlist.has(persistentCommit<Bytes<32>>(memberId, salt)));
-    this.accessCount.set(this.accessCount.get() + 1n);
-  }
-}
+enroll()                          // issuer-authorized, adds commitment to tree
+verifyMembership(appId)           // membership + commitment binding + nullifier
+proveEligibility(appId, a, t)     // + predicates age>=a, tier>=t
+revoke(appId) / unrevoke(appId)   // issuer-authorized app-nullifier management
 ```
 
-### dApp Architecture
+### Frontend
 
-- **Complete Midnight dApp:** Compact smart contract, browser-based proving, wallet integration, production frontend
-- **Browser-native ZK proving:** Uses WASM-based Groth16 prover via `dapp-connector-api`
-- **Wallet integration:** Connects via Midnight DApp Connector (1AM, Lace)
-- **React + Vite:** Modern build tooling with hot module replacement
+React 19 + Vite 6, DApp Connector, 7-provider assembly with real Merkle-path witnesses (`membershipPath`, `record`, `recordSalt`, `issuerKey`), wallet-delegated Groth16 proving with HTTP fallback.
 
-### Privacy Model
+### Architecture principles
 
-| Aspect | ShadowPass | Traditional Systems |
-|--------|------------|-------------------|
-| Identity on-chain | Hidden (ZK proof) | Visible (wallet address) |
-| Verifiability | Proof of membership only | Proof of specific identity |
-| Tracking | Impossible (unlinkable proofs) | Possible (address monitoring) |
-| Allowlist privacy | Commitments only | Public member list |
+- **Serverless**: browser + wallet + contract + public indexer + static hosting + GitHub Actions + offline CLI.
+- **Privacy by construction**: witness values are private transcript inputs; only disclosed commitments, the recomputed root, and nullifiers reach the ledger.
 
-## Implementation Status
+## Testing
 
-### Phase 0: Feasibility ✅
-- Verified 7 midnight-js providers work with DApp Connector
-- Confirmed browser-native proving is possible
-- Validated contract compilation pipeline
+Headless vitest suites: membership, eligibility boundaries, nullifier replay/rejection, revocation, privacy (transcript leak checks), real Groth16 prove/verify, issuer CLI behavior, wallet-state persistence. CI runs compile + typecheck + build + tests on every push.
 
-### Phase 1: Technical POC ✅
-- 8-step provider wiring validated in browser
-- Wallet connection → contract loading → proof generation all verified
-- Cross-fetch shim fix implemented
+## Deliverables
 
-### Phase 2: Design ✅
-- Old ShadowPass contract analysis confirmed no changes needed
-- Deterministic demo credential model approved
-- Comprehensive test plan documented
-
-### Phase 3: Implementation ✅
-- Frontend verification flow
-- Unit tests with Groth16 proof generation
-- CI/CD pipeline
-- Documentation
-
-## Key Decisions
-
-1. **No contract changes from Old ShadowPass:** The circuit correctly implements `persistentCommit` verification
-2. **Demo credentials are public:** Intentional for demonstration; production uses private credential distribution
-3. **Browser-native proving:** No proof server dependency; all ZK computation happens in the browser via WASM
-4. **Membership is wallet-independent:** The circuit verifies `persistentCommit(memberId, salt)`, not wallet addresses
-
-## Testing Strategy
-
-- **Unit tests:** CompactContract creation, proof generation, valid/invalid credential verification
-- **Integration tests:** Full browser flow validation (Phase 1 completed)
-- **CI/CD:** Automated test + build on every push
-
-## Future Work
-
-1. **Private credential distribution:** Replace demo credentials with issuer-based enrollment
-2. **Multi-member verification:** Support batch proofs for multiple credentials
-3. **Mainnet deployment:** Upgrade to mainnet when available
-4. **Circuit optimization:** Reduce proof generation time and memory usage
-
-## Links
-
-- [Midnight Network](https://github.com/midnightntwk/midnight-network)
-- [Compact Language](https://docs.midnight.network/)
-- [DApp Connector API](https://github.com/midnightntwk/dapp-connector-api)
-
-## License
-
-MIT
+- New contract (`shadowpass4.compact`) deployed on Midnight Preprod (own address)
+- Browser dApp with membership + selective-disclosure verification flows
+- Offline issuer CLI + documented demo credentials
+- Documentation: README, security model, deployment evidence, demo video
+- CI/CD (GitHub Actions + Netlify), X product profile, 15+ meaningful commits
