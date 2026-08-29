@@ -1,8 +1,27 @@
+# Netlify deployment configuration for the ShadowPass Level 4 static frontend.
+# The app is fully static (no backend): the browser binds to a deployed
+# midnight contract through the DApp Connector and public indexer.
+
 [build]
-  command = "bash scripts/netlify-build.sh"
+  # 1) Install the Compact CLI + compiler 0.31.1  (same as .github/workflows/ci.yml)
+  # 2) Install root + frontend dependencies
+  # 3) Compile the shadowpass4 contract into contracts/managed/shadowpass4
+  # 4) copy-zk-assets + tsc -b + vite build -> frontend/dist
+  command = "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/midnightntwrk/compact/releases/latest/download/compact-installer.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\" && compact update 0.31.1 && npm install && npm --prefix frontend install && npm run compile && npm run build:frontend"
   publish = "frontend/dist"
 
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA fallback (the app uses hash-free client routing via anchors)
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Never cache the ZK proving assets aggressively; they are content-addressed
+# by path and regenerated on every build.
+[[headers]]
+  for = "/midnight/shadowpass4/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"

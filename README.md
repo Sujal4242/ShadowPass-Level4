@@ -2,6 +2,13 @@
 
 **Verifiable Access Credentials on Midnight — reusable, selectively-disclosable, serverless.**
 
+![Midnight Preprod](https://img.shields.io/badge/network-Midnight%20Preprod-7c3aed.svg)
+![Compact 0.31.1](https://img.shields.io/badge/compact-0.31.1-purple.svg)
+![Groth16](https://img.shields.io/badge/proof-Groth16-blue.svg)
+![Tests](https://img.shields.io/badge/tests-57%20passing-success.svg)
+![CI](https://img.shields.io/badge/CI-GitHub%20Actions-181717.svg)
+![Hosting](https://img.shields.io/badge/hosting-Netlify-00C7B7.svg)
+
 ShadowPass is a Midnight dApp for **privacy-preserving access control**. Where level 3 proved membership against a fixed 8-slot allowlist, Level 4 introduces *verifiable credentials*: encoded on-chain as Merkle-tree commitments, reusable across applications, protected against replay by per-application nullifiers, revocable by the issuer, and **selectively disclosable** — a member can prove attributes like `age >= 18` without revealing age, identitity, or even *which* credential.
 
 Everything runs without a backend: a **Compact smart contract** on **Midnight Preprod**, a browser frontend that generates the Groth16 proof locally via the Midnight wallet, a public indexer, static hosting, GitHub Actions, and an **offline issuer CLI** for credential lifecycle management.
@@ -191,7 +198,7 @@ Commands are idempotent and read/write a local keystore under `.shadowpass-issue
 | Eligibility | `tests/contract-eligibility.test.ts` | threshold pass/fail boundaries, hidden attributes |
 | Nullifier & revocation | `tests/contract-nullifier-revocation.test.ts` | replay rejection, revoke/unrevoke, revoked-use denial |
 | Privacy | `tests/contract-privacy.test.ts` | no `memberId`/`salt`/`age`/`tier`/commitment/position in transcript |
-| Groth16 | `tests/groth16-proof.test.ts` | real prove + verify against a deployed-state binding |
+| Groth16 prove + verify | `tests/contract-membership.test.ts` + `tests/contract-eligibility.test.ts` | real Groth16 prove/verify against a deployed-state binding |
 | Issuer CLI | `tests/issuer-cli.test.ts` | credential determinism, keystore, unauthorized rejection |
 | Wallet state | `tests/wallet-state.test.ts` | persisted deploy-wallet state round-trips |
 
@@ -203,7 +210,7 @@ All suites run headless (no chain, no browser): Groth16 proof generation and on-
 
 `.github/workflows/ci.yml` — on push/PR to `main`: install Compact 0.31.1, `npm ci` (root + frontend), compile the contract, typecheck, build the frontend, run all unit tests.
 
-Netlify builds reproducibly via `scripts/netlify-build.sh` (same steps as CI) and publishes `frontend/dist`.
+`netlify.toml` — Netlify builds reproducibly (install Compact 0.31.1, `npm install` root + frontend, compile the contract, `npm run build:frontend`) and publishes `frontend/dist`.
 
 ---
 
