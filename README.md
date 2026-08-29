@@ -23,7 +23,7 @@ Everything runs without a backend: a **Compact smart contract** on **Midnight Pr
 
 ## Follow ShadowPass
 
-**[@shadowpass on X →](https://x.com/shadowpass)** — product updates, security notes, and release announcements. (Profile finalized in the release milestone.)
+- **X:** [@ShadowPassZK](https://x.com/ShadowPassZK) — ShadowPass product updates and development progress.
 
 ---
 
