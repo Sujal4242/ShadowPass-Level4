@@ -12,10 +12,24 @@ import {
   findShadowPassContract,
   type DeployedContract,
 } from '../midnight/contract-service.ts';
+import type { CredentialMaterial } from '../midnight/witnesses.ts';
 import type { ConnectionState } from '../midnight/types.ts';
-import { NETWORK_ID } from '../config.ts';
+import { NETWORK_ID, DEMO_AGE, DEMO_MEMBER_ID, DEMO_SALT, DEMO_TIER } from '../config.ts';
+import { hexToBytes } from '../midnight/credential-crypto.ts';
 
 const CONNECT_TIMEOUT_MS = 60_000;
+
+/** Demo holder credential (public by design); the issuer enrolls the matching
+ *  commitment in the deployed tree. Replace with a private credential for real
+ *  use — the witness material never leaves the browser. */
+export function demoMaterial(): CredentialMaterial {
+  return {
+    memberId: hexToBytes(DEMO_MEMBER_ID),
+    age: BigInt(DEMO_AGE),
+    tier: BigInt(DEMO_TIER),
+    salt: hexToBytes(DEMO_SALT),
+  };
+}
 
 export function findWallets(): InitialAPI[] {
   const midnight = (window as any).midnight as Record<string, InitialAPI> | undefined;
@@ -90,9 +104,9 @@ export function useMidnight() {
         console.warn('[ShadowPass] getShieldedAddresses() for display failed:', e);
       }
 
-      // Step 3: Find deployed contract
+      // Step 3: Find deployed contract (witness-bound to the demo credential)
       console.log('[ShadowPass] Calling findShadowPassContract()...');
-      const d = await findShadowPassContract(p);
+      const d = await findShadowPassContract(p, demoMaterial());
       console.log('[ShadowPass] findShadowPassContract() resolved');
 
       return { connectedAPI: connectedAPI, providers: p, deployed: d, walletAddress };

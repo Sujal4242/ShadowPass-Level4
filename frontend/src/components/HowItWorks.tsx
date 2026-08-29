@@ -9,17 +9,17 @@ const steps = [
   {
     num: '02',
     title: 'Enter Credential',
-    desc: 'Provide your membership ID and salt. These never leave your browser.',
+    desc: 'Provide your membership ID and salt plus a public application ID. Your identity never leaves your browser.',
   },
   {
     num: '03',
     title: 'Generate ZK Proof',
-    desc: 'A Groth16 zero-knowledge proof is generated locally, proving credential validity.',
+    desc: 'A Groth16 zero-knowledge proof is generated locally, proving credential validity and eligibility thresholds without disclosing them.',
   },
   {
     num: '04',
     title: 'Verify on Midnight',
-    desc: 'The proof is submitted on-chain. The contract verifies it against the allowlist.',
+    desc: 'The proof is submitted on-chain. The contract verifies it against the Merkle allowlist and records a per-app nullifier.',
   },
   {
     num: '05',

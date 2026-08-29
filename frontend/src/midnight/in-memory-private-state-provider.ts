@@ -1,8 +1,9 @@
 /**
  * In-memory PrivateStateProvider for the browser.
  *
- * ShadowPass's proveMembership circuit has no witnesses and empty private state.
- * This provider is a plumbing shim for findDeployedContract.
+ * ShadowPass's holder circuits carry secret material in their WITNESS FUNCTIONS
+ * with an empty private state, so this provider is a plumbing shim for
+ * findDeployedContract.
  */
 
 import type {

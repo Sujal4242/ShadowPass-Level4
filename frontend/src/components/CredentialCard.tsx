@@ -1,21 +1,24 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { DEMO_MEMBER_ID, DEMO_SALT } from '../config.ts';
+import { DEMO_MEMBER_ID, DEMO_SALT, DEMO_APP_ID } from '../config.ts';
 
 interface Props {
   disabled: boolean;
   walletReady: boolean;
-  onVerify: (memberId: string, salt: string) => void;
+  onVerify: (appId: string, memberId: string, salt: string) => void;
 }
 
 export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
+  const [appId, setAppId] = useState(DEMO_APP_ID);
   const [memberId, setMemberId] = useState(DEMO_MEMBER_ID);
   const [salt, setSalt] = useState(DEMO_SALT);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const memberIdValid = /^[0-9a-fA-F]{64}$/.test(memberId);
-  const saltValid = /^[0-9a-fA-F]{64}$/.test(salt);
-  const canVerify = memberIdValid && saltValid && !disabled;
+  const hex64valid = (value: string) => /^[0-9a-fA-F]{64}$/.test(value);
+  const appIdValid = hex64valid(appId);
+  const memberIdValid = hex64valid(memberId);
+  const saltValid = hex64valid(salt);
+  const canVerify = appIdValid && memberIdValid && saltValid && !disabled;
 
   return (
     <motion.div
@@ -30,14 +33,32 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
       </div>
 
       <p className="card-description">
-        Enter your membership credentials to generate a zero-knowledge proof.
-        These demo credentials are publicly provided for demonstration.
+        Prove membership while keeping your credential private. The member ID and
+        salt live only in the in-browser witness — never passed to the chain.
+        The application ID is the public per-app replay domain.
       </p>
 
       <div className="field">
         <label className="field-label">
+          Application ID
+          <span className="field-meta">public · 64 hex</span>
+        </label>
+        <input
+          type="text"
+          className={`field-input${!appIdValid && appId.length > 0 ? ' invalid' : ''}`}
+          value={appId}
+          onChange={(e) => setAppId(e.target.value)}
+          disabled={disabled}
+          spellCheck={false}
+          autoComplete="off"
+          placeholder="010203..."
+        />
+      </div>
+
+      <div className="field">
+        <label className="field-label">
           Member ID
-          <span className="field-meta">32 bytes / 64 hex</span>
+          <span className="field-meta">secret · 32 bytes / 64 hex</span>
         </label>
         <input
           type="text"
@@ -54,7 +75,7 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
       <div className="field">
         <label className="field-label">
           Salt
-          <span className="field-meta">32 bytes / 64 hex</span>
+          <span className="field-meta">secret · 32 bytes / 64 hex</span>
         </label>
         <input
           type="text"
@@ -71,7 +92,7 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
       <button
         className="btn btn-primary btn-full btn-lg"
         disabled={!canVerify}
-        onClick={() => onVerify(memberId, salt)}
+        onClick={() => onVerify(appId, memberId, salt)}
         style={{ marginTop: '0.35rem' }}
       >
         Verify Membership
@@ -100,8 +121,8 @@ export function CredentialCard({ disabled, walletReady, onVerify }: Props) {
             transition={{ duration: 0.2 }}
           >
             You can edit the Member ID and Salt fields above to test with
-            different credentials. Invalid credentials will be rejected by the
-            contract with "Access Denied".
+            different credentials. Invalid credentials are rejected by the
+            contract; replaying the same application ID is rejected as spent.
           </motion.div>
         )}
       </AnimatePresence>

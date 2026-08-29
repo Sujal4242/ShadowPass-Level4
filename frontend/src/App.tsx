@@ -18,20 +18,26 @@ import { HowItWorks } from './components/HowItWorks.tsx';
 import { Footer } from './components/Footer.tsx';
 import { useMidnight } from './hooks/useMidnight.ts';
 import { useShadowPass } from './hooks/useShadowPass.ts';
+import { hexToBytes } from './midnight/credential-crypto.ts';
 
 export default function App() {
   const { wallets, connection, providers, deployed, connect, disconnect } = useMidnight();
   const { verification, accessCount, verify, reset, refreshAccessCount } = useShadowPass();
   const verifyRef = useRef<HTMLDivElement>(null);
 
-  const isReady = connection.state === 'connected' && deployed !== null;
+  const isReady = connection.state === 'connected' && deployed !== null && providers !== null;
 
-  const handleVerify = async (memberId: string, salt: string) => {
-    if (!deployed) return;
+  const handleVerify = async (appIdHex: string, memberId: string, salt: string) => {
+    if (!providers) return;
     reset();
-    await verify(deployed, memberId, salt);
+    await verify(providers, {
+      memberId: hexToBytes(memberId),
+      age: BigInt(25),
+      tier: BigInt(4),
+      salt: hexToBytes(salt),
+    }, appIdHex);
     if (verification.state === 'granted') {
-      refreshAccessCount(deployed);
+      refreshAccessCount(deployed as NonNullable<typeof deployed>);
     }
   };
 
