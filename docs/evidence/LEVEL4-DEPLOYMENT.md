@@ -59,16 +59,30 @@ issuerCommitment = persistentHash([pad("shadowpass:issuer:"), issuerKey])
 
 Screenshot files present under `docs/evidence/screenshots/`:
 
+**UI state (frontend)**
+
 | File | What it shows | Status |
 |---|---|---|
 | `01-credential-card-membership-selected.png` | Credential card, **Membership** selected/highlighted, Eligibility unselected | verified |
 | `02-credential-card-eligibility-selected.png` | Credential card, **Eligibility** selected/highlighted, min age/tier fields visible | verified |
 | `03-full-page-membership-selected.png` | Full-page view (Membership selected) | verified |
 
-The successful membership verification result is recorded as **terminal/browser
-output evidence** (transaction/block above); there is **no screenshot file** of
-that result to attach. The older `proof-verified.jpeg` in this directory predates
-Level 4 (Level 3 flow) and is **not** Level 4 evidence.
+**Live holder flow (browser captures)**
+
+| File | What it shows | Status |
+|---|---|---|
+| `production-home.jpeg` | Production app home | verified |
+| `wallet-connection-request.jpeg` | Midnight wallet connection request | verified |
+| `membership-selected.jpeg` | Membership verification step | verified |
+| `eligibility-selected.jpeg` | Eligibility (selective disclosure) verification step | verified |
+| `proof-service-access.jpeg` | Proving service access during verification | verified |
+| `transaction-sign-request.jpeg` | Wallet transaction sign request | verified |
+| `eligibility-proved.jpeg` | Eligibility proof result | verified |
+| `replay-protection.jpeg` | Replay-protection result (per-app nullifier rejection) | verified |
+
+The successful membership verification result is also recorded as **terminal/browser
+output evidence** (transaction/block above). The older `proof-verified.jpeg` in this
+directory predates Level 4 (Level 3 flow) and is **not** Level 4 evidence.
 
 ## Explorer
 

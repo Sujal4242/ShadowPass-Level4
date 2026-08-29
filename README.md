@@ -228,6 +228,30 @@ Deployment is a one-time scripted operation (`scripts/deploy-v4.ts`) using the s
 
 ---
 
+## Level 4 Live Demo / Evidence
+
+End-to-end browser captures of the live Midnight Preprod flow (Groth16 proving delegated to the Midnight wallet). The credential shown is the public demo credential; the wallet handles the user interface, signature, and on-chain submission.
+
+![Production home](docs/evidence/screenshots/production-home.jpeg)
+
+![Wallet connection request](docs/evidence/screenshots/wallet-connection-request.jpeg)
+
+![Membership selected](docs/evidence/screenshots/membership-selected.jpeg)
+
+![Eligibility selected](docs/evidence/screenshots/eligibility-selected.jpeg)
+
+![Proof service access](docs/evidence/screenshots/proof-service-access.jpeg)
+
+![Transaction sign request](docs/evidence/screenshots/transaction-sign-request.jpeg)
+
+![Eligibility proved](docs/evidence/screenshots/eligibility-proved.jpeg)
+
+![Replay protection](docs/evidence/screenshots/replay-protection.jpeg)
+
+On-chain Level 4 proof and access evidence is recorded in `docs/evidence/LEVEL4-DEPLOYMENT.md`.
+
+---
+
 ## Repository layout
 
 ```
