@@ -41,6 +41,9 @@ jobs:
       - name: Compile Compact contract
         run: npm run compile
 
+      - name: Generate compiled contract artifacts
+        run: npm run copy-zk-assets
+
       - name: TypeScript type check (tests)
         run: npm run build
 
