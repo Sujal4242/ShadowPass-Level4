@@ -19,7 +19,7 @@ Everything runs without a backend: a **Compact smart contract** on **Midnight Pr
 
 ## Demo Video
 
-**[Watch the Level 4 demo →](...)** (link in final release milestone)
+**Demo Video:** [ShadowPass Level 4 Demo](https://youtu.be/qDBDwiBkGag)
 
 ## Follow ShadowPass
 
