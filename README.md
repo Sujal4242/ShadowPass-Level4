@@ -220,7 +220,7 @@ All suites run headless (no chain, no browser): Groth16 proof generation and on-
 |---|---|
 | **Network** | Midnight Preprod |
 | **Contract** | `shadowpass4` at `contracts/shadowpass4.compact` |
-| **Address** | set in the deployment milestone — see `docs/evidence/DOCUMENT.md` |
+| **Address** | set in the deployment milestone — see `docs/evidence/LEVEL4-DEPLOYMENT.md` |
 | **Compiler** | Compact 0.31.1 |
 | **Runtime** | compact-runtime 0.16.0 |
 

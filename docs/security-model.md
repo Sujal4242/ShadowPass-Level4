@@ -151,7 +151,8 @@ correlate a commitment to its usage proof.
 6. **ZKP library trust.**
    Soundness depends on the Groth16 implementation shipped in zkir-v2
    (circuit → R1CS, trusted setup, pairing check on-chain) plus the compact
-   compiler snapshot. See `docs/evidence/DOCUMENT.md` for pinned versions.
+   compiler snapshot. See `docs/evidence/LEVEL4-DEPLOYMENT.md` for pinned
+   versions.
 
 ---
 
