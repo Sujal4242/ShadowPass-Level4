@@ -35,8 +35,9 @@ export function Hero({ onScrollToVerify }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          Prove membership.<br />
-          <span className="hero-title-accent">Reveal nothing else.</span>
+          Prove membership.
+          <br />
+          <span className="hero-title-accent">Disclose only what it takes.</span>
         </motion.h1>
 
         <motion.p
@@ -45,9 +46,11 @@ export function Hero({ onScrollToVerify }: Props) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.35 }}
         >
-          ShadowPass uses zero-knowledge proofs to verify allowlist membership
-          without exposing your identity. A Groth16 proof is generated entirely
-          in your browser and verified on-chain.
+          ShadowPass uses Groth16 zero-knowledge proofs — generated entirely in
+          your browser and verified on-chain — to prove Merkle allowlist
+          membership and, when required, that hidden age/tier attributes meet a
+          public threshold. Your identity and your exact attributes are never
+          revealed.
         </motion.p>
 
         <motion.div
