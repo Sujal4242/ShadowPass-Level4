@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist-deploy",
+    "rootDir": "."
+  },
+  "include": ["scripts/**/*", "tests/**/*"],
+  "exclude": ["node_modules", "dist", "contracts/managed", "frontend"]
+}

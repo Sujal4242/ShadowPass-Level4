@@ -1,0 +1,8 @@
+[build]
+  command = "bash scripts/netlify-build.sh"
+  publish = "frontend/dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

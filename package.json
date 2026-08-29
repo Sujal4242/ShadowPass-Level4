@@ -1,0 +1,45 @@
+{
+  "name": "shadowpass",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "ShadowPass: Private Allowlist Access on Midnight Network",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "overrides": {
+    "@midnight-ntwrk/onchain-runtime-v3": "3.1.0"
+  },
+  "scripts": {
+    "compile": "compact compile contracts/shadowpass.compact contracts/managed/shadowpass",
+    "copy-zk-assets": "node frontend/scripts/copy-zk-assets.mjs",
+    "build": "tsc --noEmit",
+    "build:frontend": "npm --prefix frontend run build",
+    "build:deploy": "tsc --project tsconfig.deploy.json --noEmit",
+    "deploy:v2": "tsx scripts/deploy-v2.ts",
+    "test": "vitest run",
+    "dev:frontend": "npm --prefix frontend run dev"
+  },
+  "dependencies": {
+    "@midnight-ntwrk/compact-js": "2.5.1",
+    "@midnight-ntwrk/compact-runtime": "0.16.0",
+    "@midnight-ntwrk/midnight-js-contracts": "4.1.1",
+    "@midnight-ntwrk/midnight-js-fetch-zk-config-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-http-client-proof-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-indexer-public-data-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-network-id": "4.1.1",
+    "@midnight-ntwrk/midnight-js-node-zk-config-provider": "4.1.1",
+    "@midnight-ntwrk/midnight-js-types": "4.1.1",
+    "@midnight-ntwrk/zkir-v2": "2.1.0",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@midnight-ntwrk/midnight-js-level-private-state-provider": "^4.1.1",
+    "@midnight-ntwrk/wallet-sdk": "^1.2.0",
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.18.1",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+    "vitest": "^3.2.4"
+  }
+}

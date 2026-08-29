@@ -1,0 +1,26 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+export ledger allowlist: Vector<8, Bytes<32>>;
+export ledger accessCount: Field;
+
+constructor(members: Vector<8, Bytes<32>>) {
+  allowlist = disclose(members);
+}
+
+export circuit proveMembership(memberId: Bytes<32>, salt: Bytes<32>): [] {
+  const claim = persistentCommit<Bytes<32>>(memberId, salt);
+  assert(
+    (claim == allowlist[0]) ||
+    (claim == allowlist[1]) ||
+    (claim == allowlist[2]) ||
+    (claim == allowlist[3]) ||
+    (claim == allowlist[4]) ||
+    (claim == allowlist[5]) ||
+    (claim == allowlist[6]) ||
+    (claim == allowlist[7]),
+    "Not an authorized member"
+  );
+  accessCount = accessCount + 1;
+}

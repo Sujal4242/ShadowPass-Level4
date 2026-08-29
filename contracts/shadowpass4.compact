@@ -1,0 +1,121 @@
+pragma language_version >= 0.23;
+
+import CompactStandardLibrary;
+
+// ShadowPass Level 4 — Verifiable Access Credentials on Midnight Preprod.
+//
+// Privacy-preserving access control with reusable, selectively-disclosable
+// credentials:
+//   - Dynamic membership via a MerkleTree allowlist (1024 capacity), enrolled
+//     post-deployment by an issuer ("no-server" issuance).
+//   - verifyMembership: prove membership while keeping the credential
+//     (memberId + salt) AND the exact tree position private.
+//   - proveEligibility: selective disclosure — prove predicates over hidden
+//     attributes (age, tier) without revealing them.
+//   - Replay protection: a deterministic per-application nullifier makes each
+//     credential single-use per app.
+//   - Revocation: the issuer can revoke/un-revoke an app-nullifier.
+//
+// Authorization model:
+//   The holder proves knowledge of the preimage commitment stored as a Merkle
+//   leaf. The prover's ownPublicKey() is NOT used — it is a witness function,
+//   not an authentication mechanism (see docs/security-model.md).
+
+export struct MemberRecord {
+  memberId: Bytes<32>;
+  age: Uint<8>;
+  tier: Uint<8>;
+}
+
+export ledger memberships: MerkleTree<10, Bytes<32>>;
+export ledger usedNullifiers: Map<Bytes<32>, Bytes<32>>;
+export ledger revokedNullifiers: Map<Bytes<32>, Boolean>;
+export ledger accessCount: Field;
+export ledger issuerCommitment: Bytes<32>;
+
+constructor(issuerCommitmentValue: Bytes<32>) {
+  issuerCommitment = disclose(issuerCommitmentValue);
+  accessCount = 0;
+}
+
+witness record(): MemberRecord;
+witness recordSalt(): Bytes<32>;
+witness membershipPath(commitment: Bytes<32>): MerkleTreePath<10, Bytes<32>>;
+witness issuerKey(): Bytes<32>;
+
+circuit memberCommitment(rec: MemberRecord, salt: Bytes<32>): Bytes<32> {
+  return persistentCommit<MemberRecord>(rec, salt);
+}
+
+circuit appNullifier(appId: Bytes<32>, rec: MemberRecord, salt: Bytes<32>): Bytes<32> {
+  return persistentHash<Vector<4, Bytes<32>>>([
+    pad(32, "shadowpass:use:"),
+    appId,
+    rec.memberId,
+    salt
+  ]);
+}
+
+circuit senderIsIssuer(): Boolean {
+  return persistentHash<Vector<2, Bytes<32>>>([
+    pad(32, "shadowpass:issuer:"),
+    issuerKey()
+  ]) == issuerCommitment;
+}
+
+// ─── Issuer operations ───────────────────────────────────────────────────────
+
+export circuit enroll(): [] {
+  assert(senderIsIssuer(), "Not the issuer");
+  assert(!memberships.isFull(), "Membership tree is full");
+  const com = memberCommitment(record(), recordSalt());
+  memberships.insert(disclose(com));
+}
+
+export circuit revoke(appId: Bytes<32>): [] {
+  assert(senderIsIssuer(), "Not the issuer");
+  const nul = appNullifier(appId, record(), recordSalt());
+  assert(!revokedNullifiers.member(disclose(nul)), "Already revoked");
+  revokedNullifiers.insert(disclose(nul), true);
+}
+
+export circuit unrevoke(appId: Bytes<32>): [] {
+  assert(senderIsIssuer(), "Not the issuer");
+  const nul = appNullifier(appId, record(), recordSalt());
+  assert(revokedNullifiers.member(disclose(nul)), "Not currently revoked");
+  revokedNullifiers.remove(disclose(nul));
+}
+
+// ─── Holder operations ───────────────────────────────────────────────────────
+
+export circuit verifyMembership(appId: Bytes<32>): [] {
+  const com = memberCommitment(record(), recordSalt());
+  const path = membershipPath(com);
+  const root = disclose(merkleTreePathRoot<10, Bytes<32>>(path));
+  assert(memberships.checkRoot(root), "Not an authorized member");
+  assert(path.leaf == com, "Credential does not match a registered membership");
+
+  const nul = appNullifier(appId, record(), recordSalt());
+  assert(!usedNullifiers.member(disclose(nul)), "Credential already spent for this application");
+  assert(!revokedNullifiers.member(disclose(nul)), "Credential has been revoked");
+  usedNullifiers.insert(disclose(nul), disclose(nul));
+  accessCount = accessCount + 1;
+}
+
+export circuit proveEligibility(appId: Bytes<32>, minAge: Uint<8>, minTier: Uint<8>): [] {
+  const rec = record();
+  const com = memberCommitment(rec, recordSalt());
+  const path = membershipPath(com);
+  const root = disclose(merkleTreePathRoot<10, Bytes<32>>(path));
+  assert(memberships.checkRoot(root), "Not an authorized member");
+  assert(path.leaf == com, "Credential does not match a registered membership");
+
+  assert(rec.age >= minAge, "Minimum age requirement not met");
+  assert(rec.tier >= minTier, "Minimum tier requirement not met");
+
+  const nul = appNullifier(appId, rec, recordSalt());
+  assert(!usedNullifiers.member(disclose(nul)), "Credential already spent for this application");
+  assert(!revokedNullifiers.member(disclose(nul)), "Credential has been revoked");
+  usedNullifiers.insert(disclose(nul), disclose(nul));
+  accessCount = accessCount + 1;
+}

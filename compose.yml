@@ -1,0 +1,22 @@
+# ShadowPass deployment-only proof server
+# LOCAL DEPLOYMENT ONLY — do not expose these ports to a public network.
+# Tear down with: docker compose down
+#
+# On first boot the proof server downloads zero-knowledge public parameters
+# (SRS) from https://srs.midnight.network/. WSL2 Docker Desktop's default
+# bridge DNS cannot resolve external hosts, so explicit DNS is required.
+name: shadowpass-deploy
+
+services:
+  proof-server:
+    image: midnightntwrk/proof-server:8.1.0
+    container_name: shadowpass-proof-server
+    command: ["midnight-proof-server", "-v"]
+    ports:
+      - "6300:6300"
+    environment:
+      RUST_BACKTRACE: "full"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
