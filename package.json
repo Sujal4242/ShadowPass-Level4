@@ -11,7 +11,7 @@
     "@midnight-ntwrk/onchain-runtime-v3": "3.1.0"
   },
   "scripts": {
-    "compile": "compact compile contracts/shadowpass.compact contracts/managed/shadowpass",
+    "compile": "compact compile contracts/shadowpass4.compact contracts/managed/shadowpass4",
     "copy-zk-assets": "node frontend/scripts/copy-zk-assets.mjs",
     "build": "tsc --noEmit",
     "build:frontend": "npm --prefix frontend run build",

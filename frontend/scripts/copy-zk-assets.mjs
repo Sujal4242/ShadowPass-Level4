@@ -12,10 +12,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT      = resolve(__dirname, '../..');
 
-const MANAGED   = resolve(ROOT, 'contracts/managed/shadowpass');
-const COMPILED  = resolve(ROOT, 'contracts/managed/shadowpass/contract');
+const MANAGED   = resolve(ROOT, 'contracts/managed/shadowpass4');
+const COMPILED  = resolve(ROOT, 'contracts/managed/shadowpass4/contract');
 
-const PUBLIC_ZK = resolve(ROOT, 'frontend/public/midnight/shadowpass');
+const PUBLIC_ZK = resolve(ROOT, 'frontend/public/midnight/shadowpass4');
 const SRC_OUT   = resolve(ROOT, 'frontend/src');
 
 // ---------------------------------------------------------------------------
