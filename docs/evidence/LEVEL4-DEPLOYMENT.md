@@ -41,10 +41,22 @@ issuerCommitment = persistentHash([pad("shadowpass:issuer:"), issuerKey])
 | `proveEligibility` | holder proves predicates over hidden `age`/`tier`; per-app nullifier |
 | `revoke` / `unrevoke` | issuer-authorized app-nullifier management |
 
+## Enrollment
+
+The Level 4 demo credential was enrolled on-chain by the issuer CLI
+(`npm run issuer:enroll -- --index 3 --submit`), adding one member to the
+Merkle membership tree. State was verified by decoding the on-chain contract
+state after each action.
+
+- **Block:** `2316943`
+- **Transaction:** `b880705d046531e61e596c1e443d0a0076cdb250521520d23c8ae598b621fcaa`
+- **Decoded state after action:** members `0 -> 1`, accessCount `0`, nullifiers `0`, revoked `0`
+- **Attribution:** enrollment
+
 ## On-chain verification
 
 - **Latest membership verification (live browser, holder flow):**
-  - transaction: `000ccf80749d2733a15f598c3f370ecd9c8882f7941926cbe5ab7a310ba8785b0e`
+  - transaction: `10dfab1d998f135e61a7de061a00d715d7e6cbcb1ee751c700cd6360d85b7575`
   - block: `2317331`
   - access count after verification: `2`
   - network: Midnight Preprod
@@ -54,6 +66,38 @@ issuerCommitment = persistentHash([pad("shadowpass:issuer:"), issuerKey])
 - **Revocation + replay-rejection check (tx):** replay protection was verified in
   the browser via the terminal/browser result `Credential already spent for this
   application` (per-app nullifier rejection). No separate revocation tx recorded.
+
+### On-chain verification history
+
+Every contract action for this address publishes a decoded ledger state. The
+full history observed on Midnight Preprod is:
+
+| Block | Transaction | accessCount | used nullifiers | Attribution |
+|---|---|---|---|---|
+| `2316943` | `b880705d046531e61e596c1e443d0a0076cdb250521520d23c8ae598b621fcaa` | 0 | 0 | Enrollment |
+| `2317066` | `b82654820015cda063843948a269a7fdb22732498b48ac5e5b2b9c78cd4be4c3` | 1 | 1 | Holder verification #1 |
+| `2317331` | `10dfab1d998f135e61a7de061a00d715d7e6cbcb1ee751c700cd6360d85b7575` | 2 | 2 | Holder verification #2 — documented browser demo |
+| `2317901` | `31e3115b400fd04956fb770c8fe7caecf42e672a9d258d73c6153cadf28ecce0` | 3 | 3 | Holder verification #3 |
+| `2318050` | `dd86c1ecf9af1d1a5fe5e6abdcdcdff541c59cfe1372415e4f8e537c85bd5aaf` | 4 | 4 | Holder verification #4 |
+
+Notes:
+
+- Both holder circuits (`verifyMembership` and `proveEligibility`) increment
+  accessCount and consume one per-application nullifier; the decoded on-chain
+  ledger state does **not** distinguish the two. Labelling a specific
+  verification as membership vs. eligibility comes from the corresponding
+  off-chain UI evidence (`membership-selected.jpeg`,
+  `eligibility-selected.jpeg`, `eligibility-proved.jpeg`).
+- Replay rejection is represented by the existing UI evidence
+  (`replay-protection.jpeg`, `Credential already spent for this application`);
+  it is **not** claimed here as an on-chain duplicate-transaction record.
+- No live revocation transaction exists: `revoked` is `0` at every observed
+  state. Revocation is implemented and covered by the unit test suite
+  (`contract-nullifier-revocation.test.ts`), but no `revoke`/`unrevoke`
+  transaction has been submitted on-chain.
+- The deployment transaction ID/block remain **TBD** (the exact deployment
+  transaction ID was not recovered during this audit). No transaction ID is
+  asserted here without on-chain verification.
 
 ## UI evidence (Level 4 frontend)
 
