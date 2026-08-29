@@ -219,6 +219,46 @@ export class Level4Driver {
     }
   }
 
+  /**
+   * Run `circuitName` up to the transcript stage (no Groth16 proving): returns
+   * the raw proofData, the serialized preimage, and the public binding inputs.
+   * Used by the privacy suite, which scans the public view of a transcript for
+   * leaked secret material.
+   */
+  async transcript(
+    circuitName: CircuitName,
+    contextState: any,
+    privateState: unknown,
+    args: Array<Uint8Array | bigint>,
+  ) {
+    try {
+      const contract = new ShadowPass4.Contract(this.witnesses);
+      const context = ocrt.createCircuitContext(
+        ocrt.dummyContractAddress(),
+        { bytes: encodedCoinPublicKeyBytes() },
+        contextState,
+        privateState as any,
+      );
+      const circuit = (contract.circuits as unknown as Record<
+        string,
+        (ctx: unknown, ...a: any[]) => any
+      >)[circuitName] as (ctx: unknown, ...a: any[]) => any;
+      const proofData = circuit(context, ...args).proofData;
+      const keyLocation = `shadowpass4/${circuitName}`;
+      const preimage = ocrt.proofDataIntoSerializedPreimage(
+        proofData.input,
+        proofData.output,
+        proofData.publicTranscript,
+        proofData.privateTranscriptOutputs,
+        keyLocation,
+      );
+      const bindingInputs = await zkirV2.check(preimage, this.keyMaterialProvider);
+      return { proofData, preimage, bindingInputs };
+    } catch (error) {
+      throw unwrapCircuitError(error);
+    }
+  }
+
   async dispose() {
     await this.runtime.dispose();
   }
