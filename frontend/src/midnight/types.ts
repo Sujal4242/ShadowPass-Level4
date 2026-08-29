@@ -1,10 +1,5 @@
 /** ShadowPass types. */
 
-export interface ShadowPassLedger {
-  allowlist: Uint8Array[];
-  accessCount: bigint;
-}
-
 /** Connection state for the wallet. */
 export type ConnectionState =
   | { state: 'disconnected' }

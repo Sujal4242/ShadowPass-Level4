@@ -9,7 +9,7 @@ const items = [
       </svg>
     ),
     title: 'ZK Proof',
-    desc: 'Proves you know a valid credential without revealing which credential. The Groth16 proof is zero-knowledge: it reveals nothing beyond validity.',
+    desc: 'Proves you know a valid credential without revealing which credential or its attributes. The Groth16 proof is zero-knowledge: it reveals only membership and, when needed, that thresholds are met.',
   },
   {
     label: 'Protocol Property',
@@ -33,7 +33,7 @@ const items = [
       </svg>
     ),
     title: 'No Tracking',
-    desc: 'Multiple verifications by the same member cannot be linked on-chain. Each proof is independent and unlinkable.',
+    desc: 'A per-app nullifier is recorded once, so a credential cannot be replayed for the same application — but different applications cannot be linked to the same identity.',
   },
 ];
 
@@ -66,7 +66,7 @@ export function PrivacySection() {
           viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.45, delay: 0.15 }}
         >
-          Zero-knowledge proofs ensure your identity stays private while proving membership.
+          Zero-knowledge proofs keep your identity and attributes private while proving membership and selective eligibility.
         </motion.p>
       </div>
 

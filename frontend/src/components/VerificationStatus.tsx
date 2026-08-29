@@ -21,7 +21,7 @@ export function VerificationStatus({ state }: Props) {
             <div className="spinner spinner-lg" />
             <div>
               <div className="status-title">Generating ZK Proof</div>
-              <div className="status-description">Preparing Groth16 proof that your credential is in the allowlist...</div>
+              <div className="status-description">Preparing a Groth16 proof that your credential is in the Merkle allowlist and meets the requested threshold...</div>
             </div>
           </div>
           <div className="progress-track">
