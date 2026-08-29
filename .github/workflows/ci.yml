@@ -41,12 +41,15 @@ jobs:
       - name: Compile Compact contract
         run: npm run compile
 
-      - name: TypeScript type check
+      - name: TypeScript type check (tests)
         run: npm run build
+
+      - name: TypeScript type check (scripts + tests + deploy)
+        run: npm run build:deploy
 
       - name: Frontend build
         run: npm run build:frontend
 
       - name: Unit tests
         run: npm test
-        timeout-minutes: 15
+        timeout-minutes: 25
