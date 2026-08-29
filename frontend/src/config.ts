@@ -7,11 +7,11 @@ const env = import.meta.env;
 /** Network id passed to the wallet's connect(). */
 export const NETWORK_ID: string = env.VITE_NETWORK_ID ?? 'preprod';
 
-/** Contract address on Preprod — set after manual deployment (m17).
- *  TODO(m17): replace with the Level 4 deployment address / VITE_CONTRACT_ADDRESS. */
+/** Contract address on Preprod — the deployed Level 4 shadowpass4 contract
+ *  (m17). Override via VITE_CONTRACT_ADDRESS. */
 export const CONTRACT_ADDRESS: string =
   env.VITE_CONTRACT_ADDRESS ??
-  '4cae45d1c4e6d2acc4e607f60cd61c19b77c31c84af0cc72c827889271041f44';
+  '52a195f6b68a2f09c8535afe2cfed126068b4cf82eead210b6d1504a985c285e';
 
 /** Fallback indexer endpoints when the wallet does not advertise its own. */
 export const INDEXER_URL: string =

@@ -7,12 +7,12 @@
 > taken from the deployment script output, source configuration, tests and
 > successful in-browser verification. No secrets are stored here.
 >
-> **Status:** Template — filled in during the deployment milestone.
+> **Status:** Deployment completed — evidence filled in below.
 
 ## Deployment
 
 - **Network:** Midnight Preprod
-- **Contract address:** `TBD`
+- **Contract address:** `52a195f6b68a2f09c8535afe2cfed126068b4cf82eead210b6d1504a985c285e`
 - **Compact contract:** `contracts/shadowpass4.compact`
 - **Compiler version:** 0.31.1
 - **Runtime version:** 0.16.0
@@ -29,8 +29,8 @@ issuerCommitment = persistentHash([pad("shadowpass:issuer:"), issuerKey])
 
 | Field | Value |
 |---|---|
-| issuerKey | TBD (kept secret — issuer keystore `.shadowpass-issuer/issuer-key.json`) |
-| issuerCommitment | TBD — printed by `npm run issuer:gen-issuer` |
+| issuerKey | kept secret — issuer keystore `.shadowpass-issuer/issuer-key.json` |
+| issuerCommitment | `a2ec55b08a47b2a30512881e7efbce6953f9230b9d4b80608c1ee4c2490ca01b` |
 
 ## Circuits (5, all Groth16)
 
@@ -50,7 +50,7 @@ issuerCommitment = persistentHash([pad("shadowpass:issuer:"), issuerKey])
 
 ## Explorer
 
-- **Contract:** https://explorer.preprod.midnight.network/contract/<ADDRESS>
+- **Contract:** https://explorer.preprod.midnight.network/contract/52a195f6b68a2f09c8535afe2cfed126068b4cf82eead210b6d1504a985c285e
 - Proof infrastructure: browser-delegated proving via the Midnight wallet
   (1AM integrated WASM prover) with an HTTP fallback to the local proof server.
 - Frontend: fully static, no backend, no database.
