@@ -40,6 +40,8 @@ import {
 } from './deploy-wallet.js';
 import { readIssuerKeystore } from './issuer-keystore.js';
 import { hexToBytes } from '../frontend/src/midnight/credential-crypto.js';
+import { createShadowPass4Witnesses } from '../frontend/src/midnight/witnesses.js';
+import type * as ShadowPass4Module from '../contracts/managed/shadowpass4/contract/index.js';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const ZK_ASSETS = join(ROOT, 'contracts', 'managed', 'shadowpass4');
@@ -52,7 +54,9 @@ function fatal(message: string): never {
 
 if (!existsSync(CONTRACT_JS)) fatal('Contract not compiled. Run: npm run compile');
 
-const ShadowPass4 = await import(pathToFileURL(CONTRACT_JS).href);
+const ShadowPass4 = (await import(
+  pathToFileURL(CONTRACT_JS).href,
+)) as typeof ShadowPass4Module;
 
 function getSeed(): string {
   const seed = process.env.SHADOWPASS4_DEPLOYER_SEED;
@@ -159,9 +163,18 @@ async function main() {
     'shadowpass4-deploy-state',
   );
 
-  const { CompiledContract } = await import('@midnight-ntwrk/midnight-js-protocol/compact-js');
+  const {
+    CompiledContract,
+  } = await import('@midnight-ntwrk/midnight-js-protocol/compact-js');
   const compiledContract = CompiledContract.make('shadowpass4', ShadowPass4.Contract).pipe(
-    CompiledContract.withVacantWitnesses,
+    CompiledContract.withWitnesses(
+      createShadowPass4Witnesses({
+        memberId: new Uint8Array(32),
+        age: 0n,
+        tier: 0n,
+        salt: new Uint8Array(32),
+      }),
+    ),
     CompiledContract.withCompiledFileAssets(ZK_ASSETS),
   );
 
